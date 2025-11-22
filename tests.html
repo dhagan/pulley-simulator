@@ -4,305 +4,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visual Integration Tests - Rope & Pulley Simulator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <title>Visual Integration Tests</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        .test-panel {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--gradient-surface);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--radius-xl);
-            padding: var(--spacing-xl);
-            width: 300px;
-            box-shadow: var(--shadow-lg);
-            z-index: 100;
-        }
-
-        .test-btn {
-            width: 100%;
-            margin: 8px 0;
-            padding: 12px;
-            background: var(--gradient-primary);
-            border: none;
-            border-radius: var(--radius-md);
+        body {
+            background: #0a0a0f;
             color: white;
-            font-family: var(--font-family);
-            font-weight: 600;
+            font-family: sans-serif;
+        }
+
+        #canvas {
+            border: 1px solid #333;
+            background: #111;
+            width: 100%;
+            height: 100vh;
+            display: block;
+        }
+
+        .controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+            padding: 8px;
             cursor: pointer;
-            transition: all var(--transition-base);
         }
 
-        .test-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-glow);
-        }
-
-        .test-btn.secondary {
-            background: var(--color-surface);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        h2 {
-            color: var(--color-primary-light);
-            margin-bottom: 16px;
-            font-size: 1.2rem;
-        }
-
-        .test-description {
-            color: var(--color-text-secondary);
-            font-size: 0.85rem;
-            margin: 4px 0 12px 0;
+        #status {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            color: yellow;
+            font-family: monospace;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <header class="header">
-            <div class="header-content">
-                <h1 class="title">
-                    <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <circle cx="12" cy="12" r="3" />
-                    </svg>
-                    Visual Integration Tests
-                </h1>
-                <p class="subtitle">Click buttons to run physics tests</p>
-            </div>
-        </header>
+    <div id="status">Initializing...</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <h3>Tests</h3>
+        <button onclick="runTest('simple')">Simple Pulley</button>
+        <button onclick="runTest('double')">Double Pulley</button>
+        <button onclick="runTest('hanging')">Hanging Weight</button>
+        <button onclick="clearScene()">Clear Scene</button>
+        <button onclick="location.href='index.html'">Back</button>
+    </div>
 
-        <main class="main-content">
-            <div class="canvas-container">
-                <canvas id="canvas"></canvas>
-            </div>
-        </main>
+    <!-- Load Matter.js locally -->
+    <script src="matter.min.js"></script>
+    <!-- Load Config -->
+    <script src="config.js"></script>
+    <!-- Load App Logic -->
+    <script src="app.js"></script>
 
-        <!-- Test Panel -->
-        <div class="test-panel">
-            <h2>🧪 Test Scenarios</h2>
+    <script>
+        const status = document.getElementById('status');
 
-            <button class="test-btn" onclick="testSimplePulley()">
-                Simple Pulley System
-            </button>
-            <div class="test-description">Anchor → Pulley → Weight</div>
+        window.onerror = function (msg, url, line) {
+            status.style.color = 'red';
+            status.innerText = `Error: ${msg} at line ${line}`;
+            console.error(msg);
+        };
 
-            <button class="test-btn" onclick="testDoublePulley()">
-                Double Pulley System
-            </button>
-            <div class="test-description">Two pulleys with shared weight</div>
+        document.addEventListener('DOMContentLoaded', () => {
+            status.innerText = 'DOM Loaded. Checking dependencies...';
 
-            <button class="test-btn" onclick="testHangingWeight()">
-                Hanging Weight
-            </button>
-            <div class="test-description">Direct anchor to weight</div>
+            if (typeof Matter === 'undefined') {
+                throw new Error('Matter.js not loaded');
+            }
+            if (typeof ObjectConfig === 'undefined') {
+                throw new Error('config.js not loaded');
+            }
+            if (typeof App === 'undefined') {
+                throw new Error('app.js not loaded');
+            }
 
-            <button class="test-btn" onclick="testGridAlignment()">
-                Grid Alignment Test
-            </button>
-            <div class="test-description">Objects at grid intersections</div>
+            status.innerText = 'Dependencies OK. Initializing App...';
+            status.style.color = 'lime';
 
-            <button class="test-btn secondary" onclick="clearScene()">
-                🗑️ Clear Scene
-            </button>
+            // Force init if needed
+            if (!App.engine) {
+                console.log('Forcing init...');
+                if (typeof init === 'function') init();
+            }
 
-            <button class="test-btn secondary" onclick="location.href='index.html'">
-                alert('Error: app.js failed to load. Check console.');
-                } else {
-                console.log('✅ App object found. Simulator ready.');
-                // Ensure engine is initialized if not already
-                if (!App.engine && typeof init === 'function') {
-                console.log('⚠️ App.engine not found, calling init()...');
-                init();
-                }
-                }
-                });
+            setTimeout(() => {
+                status.innerText = 'Ready. Click a test.';
+            }, 1000);
+        });
 
-                function clearScene() {
-                if (typeof App !== 'undefined' && App.engine) {
+        function clearScene() {
+            if (App.engine) {
                 Matter.Composite.clear(App.engine.world);
                 App.objects = [];
-                createGround();
-                console.log('🗑️ Scene cleared');
-                } else {
-                console.error('Cannot clear scene: App or App.engine undefined');
-                alert('Error: Simulator not initialized. Try refreshing the page.');
-                }
-                }
+                createGround(); // Ensure createGround is available globally or via App
+            }
+        }
 
-                function testSimplePulley() {
-                if (typeof App === 'undefined' || !App.engine) {
-                alert('CRITICAL: App not ready. Please wait or refresh.');
-                return;
-                }
-                clearScene();
-                console.log('🧪 Running: Simple Pulley System');
-                const cfg = ObjectConfig;
+        function runTest(type) {
+            clearScene();
+            const cfg = ObjectConfig;
+            const world = App.engine.world;
+            let objects = [];
 
-                const anchor = Matter.Bodies.rectangle(400, 100, cfg.anchor.width, cfg.anchor.height, {
-                isStatic: true,
-                render: { fillStyle: cfg.anchor.fillColor, strokeStyle: cfg.anchor.strokeColor, lineWidth:
-                cfg.anchor.lineWidth },
-                label: 'anchor'
-                });
+            console.log(`Running test: ${type}`);
 
-                const pulley = Matter.Bodies.circle(400, 250, cfg.pulley.radius, {
-                isStatic: true,
-                render: { fillStyle: cfg.pulley.fillColor, strokeStyle: cfg.pulley.strokeColor, lineWidth:
-                cfg.pulley.lineWidth },
-                label: 'pulley'
-                });
+            if (type === 'simple') {
+                const anchor = Matter.Bodies.rectangle(400, 100, cfg.anchor.width, cfg.anchor.height, { isStatic: true, render: { fillStyle: cfg.anchor.fillColor }, label: 'anchor' });
+                const pulley = Matter.Bodies.circle(400, 250, cfg.pulley.radius, { isStatic: true, render: { fillStyle: cfg.pulley.fillColor }, label: 'pulley' });
+                const weight = Matter.Bodies.rectangle(400, 450, cfg.weight.size, cfg.weight.size, { density: 0.1, render: { fillStyle: cfg.weight.fillColor }, label: 'weight' });
+                objects = [anchor, pulley, weight];
 
-                const weight = Matter.Bodies.rectangle(400, 450, cfg.weight.size, cfg.weight.size, {
-                density: 0.1,
-                render: { fillStyle: cfg.weight.fillColor, strokeStyle: cfg.weight.strokeColor, lineWidth:
-                cfg.weight.lineWidth },
-                label: 'weight'
-                });
+                // Create ropes manually if createRope is not global
+                // Assuming createRope is global from app.js
+                setTimeout(() => {
+                    createRope({ x: 400, y: 110, body: anchor }, { x: 400, y: 220, body: pulley });
+                    createRope({ x: 400, y: 280, body: pulley }, { x: 400, y: 430, body: weight });
+                }, 100);
+            }
+            else if (type === 'hanging') {
+                const anchor = Matter.Bodies.rectangle(400, 100, cfg.anchor.width, cfg.anchor.height, { isStatic: true, render: { fillStyle: cfg.anchor.fillColor }, label: 'anchor' });
+                const weight = Matter.Bodies.rectangle(400, 350, cfg.weight.size, cfg.weight.size, { density: 0.1, render: { fillStyle: cfg.weight.fillColor }, label: 'weight' });
+                objects = [anchor, weight];
+                setTimeout(() => {
+                    createRope({ x: 400, y: 110, body: anchor }, { x: 400, y: 330, body: weight });
+                }, 100);
+            }
 
-                Matter.Composite.add(App.engine.world, [anchor, pulley, weight]);
-                createRope({ x: 400, y: 110, body: anchor }, { x: 400, y: 220, body: pulley });
-                createRope({ x: 400, y: 280, body: pulley }, { x: 400, y: 430, body: weight });
+            Matter.Composite.add(world, objects);
 
+            // Ensure runner is active
+            if (!App.runner.enabled) {
                 Matter.Runner.run(App.runner, App.engine);
-                App.isSimulating = true;
-                console.log('✅ Test running!');
-                }
-
-                function testDoublePulley() {
-                if (typeof App === 'undefined' || !App.engine) {
-                alert('CRITICAL: App not ready. Please wait or refresh.');
-                return;
-                }
-                clearScene();
-                console.log('🧪 Running: Double Pulley System');
-                const cfg = ObjectConfig;
-
-                const anchor1 = Matter.Bodies.rectangle(250, 100, cfg.anchor.width, cfg.anchor.height, {
-                isStatic: true,
-                render: { fillStyle: cfg.anchor.fillColor, strokeStyle: cfg.anchor.strokeColor, lineWidth:
-                cfg.anchor.lineWidth },
-                label: 'anchor'
-                });
-
-                const anchor2 = Matter.Bodies.rectangle(550, 100, cfg.anchor.width, cfg.anchor.height, {
-                isStatic: true,
-                render: { fillStyle: cfg.anchor.fillColor, strokeStyle: cfg.anchor.strokeColor, lineWidth:
-                cfg.anchor.lineWidth },
-                label: 'anchor'
-                });
-
-                const pulley1 = Matter.Bodies.circle(250, 250, cfg.pulley.radius, {
-                isStatic: true,
-                render: { fillStyle: cfg.pulley.fillColor, strokeStyle: cfg.pulley.strokeColor, lineWidth:
-                cfg.pulley.lineWidth },
-                label: 'pulley'
-                });
-
-                const pulley2 = Matter.Bodies.circle(550, 250, cfg.pulley.radius, {
-                isStatic: true,
-                render: { fillStyle: cfg.pulley.fillColor, strokeStyle: cfg.pulley.strokeColor, lineWidth:
-                cfg.pulley.lineWidth },
-                label: 'pulley'
-                });
-
-                const weight = Matter.Bodies.rectangle(400, 450, 60, cfg.weight.size, {
-                density: 0.15,
-                render: { fillStyle: cfg.weight.fillColor, strokeStyle: cfg.weight.strokeColor, lineWidth:
-                cfg.weight.lineWidth },
-                label: 'weight'
-                });
-
-                Matter.Composite.add(App.engine.world, [anchor1, anchor2, pulley1, pulley2, weight]);
-                createRope({ x: 250, y: 110, body: anchor1 }, { x: 250, y: 220, body: pulley1 });
-                createRope({ x: 250, y: 280, body: pulley1 }, { x: 370, y: 430, body: weight });
-                createRope({ x: 550, y: 110, body: anchor2 }, { x: 550, y: 220, body: pulley2 });
-                createRope({ x: 550, y: 280, body: pulley2 }, { x: 430, y: 430, body: weight });
-
-                Matter.Runner.run(App.runner, App.engine);
-                App.isSimulating = true;
-                console.log('✅ Test running!');
-                }
-
-                function testHangingWeight() {
-                if (typeof App === 'undefined' || !App.engine) {
-                alert('CRITICAL: App not ready. Please wait or refresh.');
-                return;
-                }
-                clearScene();
-                console.log('🧪 Running: Hanging Weight');
-                const cfg = ObjectConfig;
-
-                const anchor = Matter.Bodies.rectangle(400, 100, cfg.anchor.width, cfg.anchor.height, {
-                isStatic: true,
-                render: { fillStyle: cfg.anchor.fillColor, strokeStyle: cfg.anchor.strokeColor, lineWidth:
-                cfg.anchor.lineWidth },
-                label: 'anchor'
-                });
-
-                const weight = Matter.Bodies.rectangle(400, 350, cfg.weight.size, cfg.weight.size, {
-                density: 0.1,
-                render: { fillStyle: cfg.weight.fillColor, strokeStyle: cfg.weight.strokeColor, lineWidth:
-                cfg.weight.lineWidth },
-                label: 'weight'
-                });
-
-                Matter.Composite.add(App.engine.world, [anchor, weight]);
-                createRope({ x: 400, y: 110, body: anchor }, { x: 400, y: 330, body: weight });
-
-                Matter.Runner.run(App.runner, App.engine);
-                App.isSimulating = true;
-                console.log('✅ Test running!');
-                }
-
-                function testGridAlignment() {
-                if (typeof App === 'undefined' || !App.engine) {
-                alert('CRITICAL: App not ready. Please wait or refresh.');
-                return;
-                }
-                clearScene();
-                console.log('🧪 Running: Grid Alignment Test');
-                const cfg = ObjectConfig;
-
-                const objects = [
-                Matter.Bodies.circle(200, 200, cfg.pulley.radius, {
-                isStatic: true,
-                render: { fillStyle: cfg.pulley.fillColor, strokeStyle: cfg.pulley.strokeColor, lineWidth:
-                cfg.pulley.lineWidth },
-                label: 'pulley'
-                }),
-                Matter.Bodies.circle(400, 200, cfg.pulley.radius, {
-                isStatic: true,
-                render: { fillStyle: cfg.pulley.fillColor, strokeStyle: cfg.pulley.strokeColor, lineWidth:
-                cfg.pulley.lineWidth },
-                label: 'pulley'
-                }),
-                Matter.Bodies.circle(600, 200, cfg.pulley.radius, {
-                isStatic: true,
-                render: { fillStyle: cfg.pulley.fillColor, strokeStyle: cfg.pulley.strokeColor, lineWidth:
-                cfg.pulley.lineWidth },
-                label: 'pulley'
-                }),
-                Matter.Bodies.rectangle(300, 400, cfg.weight.size, cfg.weight.size, {
-                density: 0.1,
-                render: { fillStyle: cfg.weight.fillColor, strokeStyle: cfg.weight.strokeColor, lineWidth:
-                cfg.weight.lineWidth },
-                label: 'weight'
-                }),
-                Matter.Bodies.rectangle(500, 400, cfg.weight.size, cfg.weight.size, {
-                density: 0.1,
-                render: { fillStyle: cfg.weight.fillColor, strokeStyle: cfg.weight.strokeColor, lineWidth:
-                cfg.weight.lineWidth },
-                label: 'weight'
-                })
-                ];
-
-                Matter.Composite.add(App.engine.world, objects);
-                console.log('✅ Objects placed at grid intersections (200, 400, 600)');
-                }
-                </script>
+            }
+            App.isSimulating = true;
+        }
+    </script>
 </body>
 
 </html>

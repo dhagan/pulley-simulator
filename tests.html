@@ -115,10 +115,24 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-    <script src="config.js"></script>
-    <script src="app.js"></script>
+    <script src="config.js?v=3"></script>
+    <script src="app.js?v=3"></script>
     <script>
         console.log('🧪 Visual test page loading...');
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof App === 'undefined') {
+                console.error('❌ CRITICAL: App object is not defined! app.js failed to load.');
+                alert('Error: app.js failed to load. Check console.');
+            } else {
+                console.log('✅ App object found. Simulator ready.');
+                // Ensure engine is initialized if not already
+                if (!App.engine && typeof init === 'function') {
+                    console.log('⚠️ App.engine not found, calling init()...');
+                    init();
+                }
+            }
+        });
 
         function clearScene() {
             if (typeof App !== 'undefined' && App.engine) {
@@ -126,6 +140,8 @@
                 App.objects = [];
                 createGround();
                 console.log('🗑️ Scene cleared');
+            } else {
+                console.error('Cannot clear scene: App or App.engine undefined');
             }
         }
 

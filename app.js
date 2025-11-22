@@ -3,7 +3,7 @@ const { Engine, Render, Runner, Bodies, Composite, Constraint, Mouse, MouseConst
 
 const App = {
     engine: null, render: null, runner: null, mouse: null, mouseConstraint: null,
-    currentTool: 'pulley', isSimulating: false, objects: [], selectedObject: null, rope Start: null,
+    currentTool: 'pulley', isSimulating: false, objects: [], selectedObject: null, ropeStart: null,
     showGrid: true, showDebug: false,
     settings: { gravity: 9.8, friction: 0.1, mass: 10 },
     canvas: null, ctx: null, width: 0, height: 0

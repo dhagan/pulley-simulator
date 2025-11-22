@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Simple Test</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: white;
+            font-family: Arial;
+            padding: 20px;
+        }
+
+        canvas {
+            border: 2px solid #7f5af0;
+            background: #0f0f1e;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Simple Canvas Test</h1>
+    <p>Click anywhere on the canvas below. Circles should fall and bounce!</p>
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script>
+        const canvas = document.getElementById('testCanvas');
+
+        // Create Matter.js engine
+        const engine = Matter.Engine.create();
+        const render = Matter.Render.create({
+            canvas: canvas,
+            engine: engine,
+            options: {
+                width: 800,
+                height: 600,
+                wireframes: false,
+                background: 'transparent'
+            }
+        });
+
+        // Add ground
+        const ground = Matter.Bodies.rectangle(400, 590, 800, 20, {
+            isStatic: true,
+            render: {
+                fillStyle: '#7f5af0'
+            }
+        });
+        Matter.Composite.add(engine.world, ground);
+
+        // Start render and physics
+        Matter.Render.run(render);
+        const runner = Matter.Runner.create();
+        Matter.Runner.run(runner, engine);
+
+        // Click to add circle
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            console.log('Clicked at:', x, y);
+
+            const circle = Matter.Bodies.circle(x, y, 30, {
+                render: {
+                    fillStyle: '#ff6b6b',
+                    strokeStyle: '#fff',
+                    lineWidth: 2
+                }
+            });
+
+            Matter.Composite.add(engine.world, circle);
+            console.log('Circle added!');
+        });
+
+        console.log('Test page loaded successfully!');
+    </script>
+</body>
+
+</html>

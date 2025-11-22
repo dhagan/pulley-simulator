@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rope Physics Test - Anchor -> Pulley -> Weight</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #0a0a0f;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+
+        h1 {
+            color: #7f5af0;
+            margin-bottom: 10px;
+        }
+
+        .info {
+            background: rgba(127, 90, 240, 0.1);
+            border: 1px solid rgba(127, 90, 240, 0.3);
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        canvas {
+            border: 2px solid #7f5af0;
+            background: #1a1a2e;
+            display: block;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        button {
+            background: #7f5af0;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        button:hover {
+            background: #6a4ad8;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🪢 Rope Physics Test</h1>
+    <div class="info">
+        <p><strong>Test Setup:</strong> Anchor (top) → Pulley (middle) → Weight (hanging)</p>
+        <p><strong>Expected:</strong> Rope should be inelastic (no bouncing/stretching)</p>
+        <p><strong>Current Issue:</strong> Rope acts like a spring</p>
+        <p id="status">Initializing...</p>
+    </div>
+
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <div class="controls">
+        <button onclick="runTest()">▶️ Run Test</button>
+        <button onclick="resetTest()">🔄 Reset</button>
+        <button onclick="location.href='index.html'">← Back to Simulator</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script>
+        // Matter.js aliases
+        const Engine = Matter.Engine;
+        const Render = Matter.Render;
+        const Runner = Matter.Runner;
+        const Bodies = Matter.Bodies;
+        const Composite = Matter.Composite;
+        const Constraint = Matter.Constraint;
+        const Body = Matter.Body;
+
+        let engine, render, runner;
+
+        function init() {
+            const canvas = document.getElementById('canvas');
+
+            // Create engine
+            engine = Engine.create();
+            engine.gravity.y = 0.98; // 9.8 / 10
+
+            // Create renderer
+            render = Render.create({
+                canvas: canvas,
+                engine: engine,
+                options: {
+                    width: 800,
+                    height: 600,
+                    wireframes: false,
+                    background: 'transparent'
+                }
+            });
+
+            runner = Runner.create();
+
+            // Add ground
+            const ground = Bodies.rectangle(400, 590, 800, 20, {
+                isStatic: true,
+                render: {
+                    fillStyle: 'rgba(127, 90, 240, 0.3)',
+                    strokeStyle: 'rgba(127, 90, 240, 0.8)',
+                    lineWidth: 2
+                }
+            });
+            Composite.add(engine.world, ground);
+
+            // Start rendering
+            Render.run(render);
+
+            document.getElementById('status').textContent = '✅ Ready! Click "Run Test" to start';
+        }
+
+        function runTest() {
+            console.log('🧪 Running rope physics test...');
+            document.getElementById('status').textContent = '🧪 Test running...';
+
+            // Clear existing objects (except ground)
+            const bodies = Composite.allBodies(engine.world);
+            bodies.forEach(body => {
+                if (body.label !== 'ground' && !body.label.includes('anchor') &&
+                    !body.label.includes('pulley') && !body.label.includes('weight')) {
+                    Composite.remove(engine.world, body);
+                }
+            });
+
+            // Create test setup: Anchor -> Pulley -> Weight
+
+            // 1. Anchor at top
+            const anchor = Bodies.rectangle(400, 100, 60, 20, {
+                isStatic: true,
+                render: {
+                    fillStyle: 'rgba(80, 80, 80, 0.9)',
+                    strokeStyle: 'rgba(120, 120, 120, 1)',
+                    lineWidth: 2
+                },
+                label: 'anchor'
+            });
+
+            // 2. Pulley in middle
+            const pulley = Bodies.circle(400, 250, 30, {
+                isStatic: true,
+                render: {
+                    fillStyle: 'rgba(60, 40, 120, 0.8)',
+                    strokeStyle: 'rgba(127, 90, 240, 1)',
+                    lineWidth: 3
+                },
+                label: 'pulley'
+            });
+
+            const pulleyCenter = Bodies.circle(400, 250, 5, {
+                isStatic: true,
+                render: {
+                    fillStyle: 'rgba(127, 90, 240, 1)'
+                }
+            });
+
+            // 3. Weight at bottom
+            const weight = Bodies.rectangle(400, 450, 40, 40, {
+                density: 0.1,
+                friction: 0.1,
+                render: {
+                    fillStyle: 'rgba(255, 140, 60, 0.8)',
+                    strokeStyle: 'rgba(255, 180, 100, 1)',
+                    lineWidth: 2
+                },
+                label: 'weight'
+            });
+
+            // Add objects to world
+            Composite.add(engine.world, [anchor, pulley, pulleyCenter, weight]);
+
+            // Create ropes
+
+            // Rope 1: Anchor to Pulley
+            const rope1 = createRope(
+                { x: 400, y: 120, body: anchor },
+                { x: 400, y: 220, body: pulley }
+            );
+
+            // Rope 2: Pulley to Weight
+            const rope2 = createRope(
+                { x: 400, y: 280, body: pulley },
+                { x: 400, y: 430, body: weight }
+            );
+
+            // Start simulation
+            Runner.run(runner, engine);
+
+            document.getElementById('status').textContent =
+                '🔍 Observe: Does the weight bounce? Does the rope stretch? (It shouldn\'t!)';
+
+            console.log('✅ Test setup complete');
+            console.log('   - Anchor at (400, 100)');
+            console.log('   - Pulley at (400, 250)');
+            console.log('   - Weight at (400, 450)');
+        }
+
+        function createRope(start, end) {
+            const distance = Math.hypot(end.x - start.x, end.y - start.y);
+            const segments = Math.max(5, Math.floor(distance / 30));
+
+            const ropeSegments = [];
+            for (let i = 0; i < segments; i++) {
+                const t = i / segments;
+                const x = start.x + (end.x - start.x) * t;
+                const y = start.y + (end.y - start.y) * t;
+
+                const segment = Bodies.circle(x, y, 4, {
+                    density: 0.001,
+                    friction: 0.5,
+                    render: {
+                        fillStyle: 'rgba(200, 200, 150, 0.9)',
+                        strokeStyle: 'rgba(220, 220, 180, 1)',
+                        lineWidth: 1
+                    },
+                    collisionFilter: { group: -1 },
+                    label: 'rope-segment'
+                });
+
+                ropeSegments.push(segment);
+            }
+
+            Composite.add(engine.world, ropeSegments);
+
+            // Connect segments with constraints
+            for (let i = 0; i < ropeSegments.length - 1; i++) {
+                const constraint = Constraint.create({
+                    bodyA: ropeSegments[i],
+                    bodyB: ropeSegments[i + 1],
+                    length: distance / segments,
+                    stiffness: 0.9,  // ISSUE: Too elastic (springy)
+                    render: { visible: false }
+                });
+                Composite.add(engine.world, constraint);
+            }
+
+            // Attach to start body
+            if (start.body) {
+                const startConstraint = Constraint.create({
+                    bodyA: start.body,
+                    bodyB: ropeSegments[0],
+                    pointA: { x: start.x - start.body.position.x, y: start.y - start.body.position.y },
+                    length: 0,
+                    stiffness: 0.9,
+                    render: { visible: false }
+                });
+                Composite.add(engine.world, startConstraint);
+            }
+
+            // Attach to end body
+            if (end.body) {
+                const endConstraint = Constraint.create({
+                    bodyA: ropeSegments[ropeSegments.length - 1],
+                    bodyB: end.body,
+                    pointB: { x: end.x - end.body.position.x, y: end.y - end.body.position.y },
+                    length: 0,
+                    stiffness: 0.9,
+                    render: { visible: false }
+                });
+                Composite.add(engine.world, endConstraint);
+            }
+
+            return ropeSegments;
+        }
+
+        function resetTest() {
+            console.log('🔄 Resetting test...');
+
+            // Stop runner
+            Runner.stop(runner);
+
+            // Clear all objects
+            const bodies = Composite.allBodies(engine.world);
+            bodies.forEach(body => {
+                if (body.label !== 'ground') {
+                    Composite.remove(engine.world, body);
+                }
+            });
+
+            document.getElementById('status').textContent = '✅ Reset complete. Click "Run Test" to start again';
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+
+</html>

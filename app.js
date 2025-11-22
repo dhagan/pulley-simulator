@@ -6,12 +6,15 @@ const App = {
     currentTool: 'pulley', isSimulating: false, objects: [], selectedObject: null, ropeStart: null,
     showGrid: true, showDebug: false,
     settings: { gravity: 9.8, friction: 0.1, mass: 10 },
-    canvas: null, ctx: null, width: 0, height: 0
-};
+}
 
 function snapToGrid(v) { return Math.round(v / GRID_SIZE) * GRID_SIZE; }
 
 function init() {
+    if (App.engine) {
+        console.log('⚠️ App already initialized, skipping init');
+        return;
+    }
     try {
         App.canvas = document.getElementById('canvas');
         if (!App.canvas) {
@@ -46,16 +49,23 @@ function init() {
 }
 
 function resizeCanvas() {
-    const c = App.canvas.parentElement;
-    App.width = c.clientWidth;
-    App.height = c.clientHeight;
+    if (!App.canvas) return;
+    const parent = App.canvas.parentElement;
+    if (parent) {
+        App.width = parent.clientWidth;
+        App.height = parent.clientHeight || window.innerHeight;
+    } else {
+        App.width = window.innerWidth;
+        App.height = window.innerHeight;
+    }
     App.canvas.width = App.width;
     App.canvas.height = App.height;
+
     if (App.render) {
-        App.render.bounds.max.x = App.width;
-        App.render.bounds.max.y = App.height;
         App.render.options.width = App.width;
         App.render.options.height = App.height;
+        App.render.canvas.width = App.width;
+        App.render.canvas.height = App.height;
     }
 }
 

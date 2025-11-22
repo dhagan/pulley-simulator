@@ -12,28 +12,37 @@ const App = {
 function snapToGrid(v) { return Math.round(v / GRID_SIZE) * GRID_SIZE; }
 
 function init() {
-    App.canvas = document.getElementById('canvas');
-    if (!App.canvas) return;
-    App.ctx = App.canvas.getContext('2d');
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    App.engine = Engine.create();
-    App.engine.gravity.y = 0.98;
-    App.render = Render.create({
-        canvas: App.canvas, engine: App.engine,
-        options: { width: App.width, height: App.height, wireframes: false, background: 'transparent' }
-    });
-    App.runner = Runner.create();
-    App.mouse = Mouse.create(App.canvas);
-    App.mouseConstraint = MouseConstraint.create(App.engine, {
-        mouse: App.mouse, constraint: { stiffness: 0.2, render: { visible: false } }
-    });
-    createGround();
-    setupEventListeners();
-    setupKeyboardShortcuts();
-    Render.run(App.render);
-    requestAnimationFrame(renderOverlay);
-    setTool('pulley');
+    try {
+        App.canvas = document.getElementById('canvas');
+        if (!App.canvas) {
+            console.warn('⚠️ Canvas not found, skipping init');
+            return;
+        }
+        App.ctx = App.canvas.getContext('2d');
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        App.engine = Engine.create();
+        App.engine.gravity.y = 0.98;
+        App.render = Render.create({
+            canvas: App.canvas, engine: App.engine,
+            options: { width: App.width, height: App.height, wireframes: false, background: 'transparent' }
+        });
+        App.runner = Runner.create();
+        App.mouse = Mouse.create(App.canvas);
+        App.mouseConstraint = MouseConstraint.create(App.engine, {
+            mouse: App.mouse, constraint: { stiffness: 0.2, render: { visible: false } }
+        });
+        createGround();
+        setupEventListeners();
+        setupKeyboardShortcuts();
+        Render.run(App.render);
+        requestAnimationFrame(renderOverlay);
+        setTool('pulley');
+        console.log('🚀 App initialized successfully');
+    } catch (e) {
+        console.error('❌ Error initializing app:', e);
+        alert('Error initializing app: ' + e.message);
+    }
 }
 
 function resizeCanvas() {
